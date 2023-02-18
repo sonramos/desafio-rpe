@@ -1,0 +1,5 @@
+# ignore ALL .brM3 files
+*.brM3
+
+# ignore ALL files in ANY directory named temp
+temp/
