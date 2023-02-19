@@ -44,33 +44,34 @@ INSERT INTO Cliente values(10,'João Silva',43,'A',150000.0);
 
 -- Fatura --
 
-INSERT INTO Fatura values(1,'2023/02/10', 1400.0, 'A', 8);
-INSERT INTO Fatura values(2,'2023/02/15', 420.0, 'A', 3);
-INSERT INTO Fatura values(3,'2023/02/20', 552.0, 'P', 2);
-INSERT INTO Fatura values(4,'2023/02/10', 2200.0, 'P', 4);
-INSERT INTO Fatura values(5,'2023/02/15', 4148.0, 'P', 5);
-INSERT INTO Fatura values(6,'2023/02/10', 750.0, 'A', 7);
-INSERT INTO Fatura values(7,'2023/01/20', 8000.0, 'P', 10);
-INSERT INTO Fatura values(8,'2023/02/20', 6980.0, 'P', 10);
+INSERT INTO Fatura values(1,TO_DATE('2023/02/10', 'YYYY-MM-DD'), 1400.0, 'A', 8);
+INSERT INTO Fatura values(2,TO_DATE('2023/02/15', 'YYYY-MM-DD'), 420.0, 'A', 3);
+INSERT INTO Fatura values(3,TO_DATE('2023/02/20', 'YYYY-MM-DD'), 552.0, 'P', 2);
+INSERT INTO Fatura values(4,TO_DATE('2023/02/10', 'YYYY-MM-DD'), 2200.0, 'P', 4);
+INSERT INTO Fatura values(5,TO_DATE('2023/02/15', 'YYYY-MM-DD'), 4148.0, 'P', 5);
+INSERT INTO Fatura values(6,TO_DATE('2023/02/10', 'YYYY-MM-DD'), 750.0, 'A', 7);
+INSERT INTO Fatura values(7,TO_DATE('2023/01/20', 'YYYY-MM-DD'), 8000.0, 'P', 10);
+INSERT INTO Fatura values(8,TO_DATE('2023/02/20', 'YYYY-MM-DD'), 6980.0, 'P', 10);
 
 
 -- Pagamento --
 
-INSERT INTO Pagamento values(1,'2023/02/10',2200.0,4,4);
-INSERT INTO Pagamento values(1,'2023/02/12',4148.0,5,5);
-INSERT INTO Pagamento values(1,'2023/01/20',8000.0,10,7);
-INSERT INTO Pagamento values(1,'2023/02/18',6980.0,10,8);
-INSERT INTO Pagamento values(1,'2023/02/15', 552, 2, 3);
+INSERT INTO Pagamento values(1,TO_DATE('2023/02/10','YYYY-MM-DD'),2200.0,4,4);
+INSERT INTO Pagamento values(1,TO_DATE('2023/02/12','YYYY-MM-DD'),4148.0,5,5);
+INSERT INTO Pagamento values(1,TO_DATE('2023/01/20','YYYY-MM-DD'),8000.0,10,7);
+INSERT INTO Pagamento values(1,TO_DATE('2023/02/18','YYYY-MM-DD'),6980.0,10,8);
+INSERT INTO Pagamento values(1,TO_DATE('2023/02/15','YYYY-MM-DD'), 552, 2, 3);
 
 
 --- CONSULTAS ---
 
 -- 2.a - Clientes com idate entre 18 e 21 anos com crédito maior ou igual a R$1000 / retorno: Total de clientes --
 
+-- Seleção com nomes dos clientes
+SELECT nome as "Total de clientes" FROM Cliente WHERE limitecredito >= 1000.0 and idade IN (18,19,20,21);
 
-SELECT nome as "Total de clientes" FROM Cliente WHERE limitecredito >= 1000.0
-
-SELECT COUNT(nome) as "Total de clientes" FROM Cliente WHERE limitecredito >= 1000.0
+-- Seleção com quantidade de clientes
+SELECT COUNT(nome) as "Total de clientes" FROM Cliente WHERE limitecredito >= 1000.0 and idade IN (18,19,20,21);
 
 
 -- 2.b - Consultar clientes cujo pagamento foi realizado no dia do vencimento da fatura / Retorno: Data de vencimento e a quantidade --
