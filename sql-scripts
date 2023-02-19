@@ -1,4 +1,4 @@
---- Create database structure ---
+--- Create Tables ---
 
 CREATE TABLE Cliente (
 	idcliente int,
@@ -13,6 +13,7 @@ CREATE TABLE Fatura (
 	datavencimento date,
 	valor float,
 	status varchar(20)
+	-- Status: A: Atraso / P: Pago
 );
 
 CREATE TABLE Pagamento (
@@ -53,22 +54,23 @@ INSERT INTO Cliente values(10,'João Silva',43,'A',150000.0);
 
 -- Fatura --
 
-INSERT INTO Fatura values(1,'2023/03/10', 1400.0, 'P', 8);
+INSERT INTO Fatura values(1,'2023/02/10', 1400.0, 'A', 8);
 INSERT INTO Fatura values(2,'2023/02/15', 420.0, 'A', 3);
-INSERT INTO Fatura values(3,'2023/02/20', 552.0, 'F', 2);
+INSERT INTO Fatura values(3,'2023/02/20', 552.0, 'P', 2);
 INSERT INTO Fatura values(4,'2023/02/10', 2200.0, 'P', 4);
-INSERT INTO Fatura values(5,'2023/02/15', 4148.0, 'T', 5);
+INSERT INTO Fatura values(5,'2023/02/15', 4148.0, 'P', 5);
 INSERT INTO Fatura values(6,'2023/02/10', 750.0, 'A', 7);
 INSERT INTO Fatura values(7,'2023/01/20', 8000.0, 'P', 10);
 INSERT INTO Fatura values(8,'2023/02/20', 6980.0, 'P', 10);
 
+
 -- Pagamento --
 
 INSERT INTO Pagamento values(1,'2023/02/10',2200.0,4,4);
-INSERT INTO Pagamento values(1,'2023/02/12',3148.0,5,5);
-INSERT INTO Pagamento values(1,'2023/01/20',5000.0,10,7);
-INSERT INTO Pagamento values(2,'2023/01/20',3000.0,10,7);
+INSERT INTO Pagamento values(1,'2023/02/12',4148.0,5,5);
+INSERT INTO Pagamento values(1,'2023/01/20',8000.0,10,7);
 INSERT INTO Pagamento values(1,'2023/02/18',6980.0,10,8);
+INSERT INTO Pagamento values(1,'2023/02/15', 552, 2, 3);
 
 
 --- CONSULTAS ---
@@ -98,7 +100,7 @@ SELECT p.fk_cliente_idcliente as "Id do cliente", f.valor as "valor da fatura", 
 -- e quantidade de dias em atraso --
 
 SELECT c.idcliente, c.nome, f.valor as "valor da fatura", f.datavencimento, f.status, (CURRENT_DATE - f.datavencimento) as "dias em atraso" FROM Cliente c JOIN Fatura f
-	on c.idcliente = f.fk_cliente_idcliente WHERE f.status like 'A' and (CURRENT_DATE - f.datavencimento) > 3
+	on c.idcliente = f.fk_cliente_idcliente WHERE f.status like 'A' and CURRENT_DATE > f.datavencimento
 
 
 -- 2.e - Consultar cliente bloqueado por atraso no pagamento da fatura. (clientes com mais de 3 dias de atraso
@@ -112,27 +114,84 @@ SELECT c.idcliente, c.nome, c.statusbloqueio, f.idfatura, f.valor, (CURRENT_DATE
 
 --- 3.a - Bloco anônimo 1: Inserir pagamento e atualizar status da fatura.
 
+--SET SERVEROUTPUT ON SIZE 200000
 DECLARE
-valor_pagamento := 100.0;
-id_cliente_pagamento int := 2;
-id_fatura_pagamento int := 2;
-status_fatura CHAR;
+	valor_pagamento DOUBLE PRECISION:= 1400.00;
+	id_cliente_pagamento INT:= 8;
+	id_fatura_pagamento INT:= 1;
+	status_fatura CHAR;
+	total_fatura DOUBLE PRECISION;
+	fatura_indisponivel EXCEPTION;
+	pagamento_valor_errado EXCEPTION;
 BEGIN
-	SELECT status INTO status_fatura FROM Fatura WHERE idfatura = id_fatura_pagamento and fk_cliente_idcliente = id_cliente_pagamento
-	IF status NOT IN ('F', 'A', 'T') THEN
-		RAISE NO_DATA_FOUND
-	
-	
+	SELECT status, valor INTO status_fatura, total_fatura FROM Fatura WHERE idfatura = id_fatura_pagamento and fk_cliente_idcliente = id_cliente_pagamento
+	IF status = 'A' THEN
+		IF valor_pagamento = total_fatura THEN
+			INSERT INTO Pagamento values(1, CURRENT_DATE, valor_pagamento, id_cliente_pagamento, id_fatura_pagamento);
+			UPDATE Fatura SET status = 'P' WHERE idfatura = id_fatura_pagamento and fk_cliente_idcliente = id_cliente_pagamento;
+		ELSE
+			RAISE pagamento_valor_errado;
+		END IF;
+	ELSE
+		RAISE fatura_indisponivel;
+	END IF;
 EXCEPTION
-   WHEN NO_DATA_FOUND THEN
-   	dbms_output.put_line('Fatura indisponível para pagamento!');   
-END
+	WHEN fatura_indisponivel THEN
+   		dbms_output.put_line('Fatura indisponivel para pagamento!');
+	WHEN pagamento_valor_errado THEN
+		dbms_output.put_line('Valor do pagamento difere do valor da fatura. Pagamento bloqueado!');
+	WHEN NO_DATA_FOUND THEN
+		dbms_output.put_line('Nenhum dado encontrado.');
+END;
+
+
+-- 3.b - Atualizar o limite de crédito para 0, de todos os clientes que estão bloqueados por atraso no pagamento da fatura
+
+DECLARE
+	cliente_id Cliente.idcliente%TYPE;
+	cliente_nome Cliente.nome%TYPE;
+	cliente_limite Cliente.limitecredito%TYPE;
+	CURSOR c_clientes_bloqueados IS
+		SELECT idcliente, nome, limitecredito FROM Cliente WHERE statusbloqueio LIKE 'B'
+		FOR UPDATE OF limitecredito;
+BEGIN
+	OPEN c_clientes_bloqueados;
+	LOOP
+	FETCH c_clientes_bloqueados INTO cliente_id, cliente_nome, cliente_limite;
+		EXIT WHEN c_cliente_bloqueados%notfound;
+		dbms_output.put_line('Zerando limite do cliente ' || cliente_id ||': ' || cliente_nome || '.'  );
+		UPDATE Cliente SET limitecredito = 0 WHERE idcliente = cliente_id
+	END LOOP;
+	CLOSE c_clientes_bloqueados;
+EXCEPTION
+	WHEN NO_DATA_FOUND THEN
+		dbms_output.put_line('Não existem clientes bloqueados por atraso no pagamento da fatura.')
+END;
+
+
+-- 3.c - Implementar rotina para exclusão de todos os clientes que não possuem nenhuma fatura.
+
+DECLARE
+	CURSOR c_clientes IS
+		-- Seleciona clientes que constam na tabela Fatura
+		SELECT c.idcliente, c.nome FROM Cliente c LEFT OUTER JOIN Fatura f ON
+			c.idcliente = f.fk_cliente_idcliente WHERE f.fk_cliente_idcliente IS Null
+BEGIN
+	OPEN c_clientes;
+	FOR client IN c_clientes
+	LOOP
+		dbms_output.put_line('Deletando cliente ' || client.idcliente|| ': ' || client.nome ||);
+		DELETE FROM Cliente WHERE idcliente = client.idcliente;
+	END LOOP;
+	CLOSE c_clientes;
+EXCEPTION
+	WHEN NO_DATA_FOUND THEN
+		dbms_output.put_line('Nao existem clientes que não possuem faturas.');
+END;
 
 
 --- select tabelas
-
-SELECT status from Fatura Where status IN ('F','A','T')
-select * from pagamento order by datapagamento
-select * from fatura
-select * from cliente
+select * from pagamento order by fk_cliente_idcliente;
+select * from fatura order by fk_cliente_idcliente;
+select * from cliente order by idcliente;
 
