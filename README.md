@@ -7,9 +7,10 @@ Para testes e desenvolvimento da estrutura do banco e dos 2 primeiros tópicos d
 O arquivo docker-compose.yml pode ser encontrado no diretório ./containers. Para utilizar a estrutura, navegar até o diretório e executar o comando:
   docker compose up
 
-# A modelagem E-R pode ser encontrada no diretório ./modelagem-er. Constam de 2 imagens (.png) com os modelos conceitual e lógico.
+A modelagem E-R pode ser encontrada no diretório ./modelagem-er. Constam de 2 imagens (.png) com os modelos conceitual e lógico.
 
-# Os Scripts seguem dois padrões: SQL-ANSI (scripts-sql) e Oracle-SQL (scripts-oracle). Ambos estão na raíz do repositório.
+Os Scripts seguem dois padrões: SQL-ANSI (scripts-sql) e Oracle-SQL (scripts-oracle). Ambos estão na raíz do repositório.
+
 # Diferenças entre os dois padrões:
 =================
 <!--ts-->
