@@ -105,21 +105,22 @@ SELECT c.idcliente, c.nome, c.statusbloqueio, f.idfatura, f.valor, (CURRENT_DATE
 
 --- 3.a - Bloco anônimo 1: Inserir pagamento e atualizar status da fatura.
 
---SET SERVEROUTPUT ON SIZE 200000
+SET SERVEROUTPUT ON;
+
 DECLARE
-	valor_pagamento DOUBLE PRECISION:= 1400.00;
-	id_cliente_pagamento INT:= 8;
-	id_fatura_pagamento INT:= 1;
+	valor_pagamento NUMBER := 420.00;
+	id_cliente_pagamento INT := 3;
+	id_fatura_pagamento INT := 2;
 	status_fatura CHAR;
-	total_fatura DOUBLE PRECISION;
+	total_fatura NUMBER;
 	fatura_indisponivel EXCEPTION;
 	pagamento_valor_errado EXCEPTION;
 BEGIN
-	SELECT status, valor INTO status_fatura, total_fatura FROM Fatura WHERE idfatura = id_fatura_pagamento and fk_cliente_idcliente = id_cliente_pagamento
-	IF status = 'A' THEN
+	SELECT f.status, f.valor INTO status_fatura, total_fatura FROM Fatura f WHERE idfatura = id_fatura_pagamento and fk_cliente_idcliente = id_cliente_pagamento;
+	IF status_fatura = 'A' THEN
 		IF valor_pagamento = total_fatura THEN
-			INSERT INTO Pagamento values(1, CURRENT_DATE, valor_pagamento, id_cliente_pagamento, id_fatura_pagamento);
-			UPDATE Fatura SET status = 'P' WHERE idfatura = id_fatura_pagamento and fk_cliente_idcliente = id_cliente_pagamento;
+			INSERT INTO Pagamento values(1, sysdate, valor_pagamento, id_cliente_pagamento, id_fatura_pagamento);
+			UPDATE Fatura f SET f.status = 'P' WHERE idfatura = id_fatura_pagamento and fk_cliente_idcliente = id_cliente_pagamento;
 		ELSE
 			RAISE pagamento_valor_errado;
 		END IF;
@@ -145,18 +146,24 @@ DECLARE
 	CURSOR c_clientes_bloqueados IS
 		SELECT idcliente, nome, limitecredito FROM Cliente WHERE statusbloqueio LIKE 'B'
 		FOR UPDATE OF limitecredito;
+    cliente_sem_limite EXCEPTION;
 BEGIN
 	OPEN c_clientes_bloqueados;
 	LOOP
 	FETCH c_clientes_bloqueados INTO cliente_id, cliente_nome, cliente_limite;
-		EXIT WHEN c_cliente_bloqueados%notfound;
+		EXIT WHEN c_clientes_bloqueados%notfound;
+        IF cliente_limite = 0 THEN
+            RAISE cliente_sem_limite;
+        END IF;
 		dbms_output.put_line('Zerando limite do cliente ' || cliente_id ||': ' || cliente_nome || '.'  );
-		UPDATE Cliente SET limitecredito = 0 WHERE idcliente = cliente_id
+		UPDATE Cliente SET limitecredito = 0 WHERE idcliente = cliente_id;
 	END LOOP;
 	CLOSE c_clientes_bloqueados;
 EXCEPTION
+    WHEN cliente_sem_limite THEN
+        dbms_output.put_line('Cliente ' || cliente_nome || ' já está com limite zerado.');
 	WHEN NO_DATA_FOUND THEN
-		dbms_output.put_line('Não existem clientes bloqueados por atraso no pagamento da fatura.')
+		dbms_output.put_line('Não existem clientes bloqueados por atraso no pagamento da fatura.');
 END;
 
 
@@ -166,15 +173,13 @@ DECLARE
 	CURSOR c_clientes IS
 		-- Seleciona clientes que constam na tabela Fatura
 		SELECT c.idcliente, c.nome FROM Cliente c LEFT OUTER JOIN Fatura f ON
-			c.idcliente = f.fk_cliente_idcliente WHERE f.fk_cliente_idcliente IS Null
+			c.idcliente = f.fk_cliente_idcliente WHERE f.fk_cliente_idcliente IS Null;
 BEGIN
-	OPEN c_clientes;
 	FOR client IN c_clientes
 	LOOP
-		dbms_output.put_line('Deletando cliente ' || client.idcliente|| ': ' || client.nome ||);
+		dbms_output.put_line('Deletando cliente ' || client.idcliente || ': ' || client.nome);
 		DELETE FROM Cliente WHERE idcliente = client.idcliente;
 	END LOOP;
-	CLOSE c_clientes;
 EXCEPTION
 	WHEN NO_DATA_FOUND THEN
 		dbms_output.put_line('Nao existem clientes que não possuem faturas.');
