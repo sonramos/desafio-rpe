@@ -77,10 +77,10 @@ INSERT INTO Pagamento values(1,'2023/02/15', 552, 2, 3);
 
 -- 2.a - Clientes com idate entre 18 e 21 anos com crédito maior ou igual a R$1000 / retorno: Total de clientes --
 
--- Listando nomes de clientes
+-- Seleção com nomes dos clientes
 SELECT nome as "Total de clientes" FROM Cliente WHERE limitecredito >= 1000.0 and idade IN (18,19,20,21);
 
--- Quantidade de clientes
+-- Seleção com quantidade de clientes
 SELECT COUNT(nome) as "Total de clientes" FROM Cliente WHERE limitecredito >= 1000.0 and idade IN (18,19,20,21);
 
 
